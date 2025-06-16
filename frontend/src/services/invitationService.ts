@@ -29,7 +29,7 @@ export interface ValidateInvitationResponse {
 }
 
 const invitationService = {
-  // 組織の招待一覧を取得
+  // チームの招待一覧を取得
   getOrganizationInvitations: async (organizationId: string): Promise<Invitation[]> => {
     const response = await api.get(`/api/organizations/${organizationId}/invitations`);
     return response.data as Invitation[];
@@ -58,7 +58,7 @@ const invitationService = {
     return response.data as ValidateInvitationResponse;
   },
 
-  // 招待コードを使用して組織に参加
+  // 招待コードを使用してチームに参加
   useInvitationCode: async (code: string): Promise<any> => {
     const response = await api.post(`/api/invitations/use/${code}`);
     return response.data;

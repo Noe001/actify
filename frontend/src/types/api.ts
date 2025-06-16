@@ -42,7 +42,7 @@ export interface User {
   organizations?: OrganizationMembership[];
 }
 
-// 組織メンバーシップ型
+// チームメンバーシップ型
 export interface OrganizationMembership {
   id: string;
   name: string;

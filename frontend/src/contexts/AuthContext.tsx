@@ -53,14 +53,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('auth_token');
+      const savedUserData = localStorage.getItem('user_data');
       
       if (token) {
         try {
-          // バックエンドでトークンの検証を行う
+          // 保存されたユーザーデータがある場合、まずそれを使用して即座に認証状態を設定
+          if (savedUserData) {
+            try {
+              const userData = JSON.parse(savedUserData);
+              setIsAuthenticated(true);
+              setUser(userData);
+            } catch (parseError) {
+              console.error('Failed to parse saved user data:', parseError);
+            }
+          }
+          
+          // バックエンドでトークンの検証を行う（バックグラウンドで実行）
           const response = await authAPI.me();
           if (response.success && response.data) {
             setIsAuthenticated(true);
             setUser(response.data);
+            // 最新のユーザーデータを保存
+            localStorage.setItem('user_data', JSON.stringify(response.data));
           } else {
             clearAuthData();
           }
@@ -68,6 +82,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.error('Auth check failed:', error);
           clearAuthData();
         }
+      } else {
+        // トークンがない場合は認証されていない
+        clearAuthData();
       }
       
       setIsLoading(false);
@@ -95,6 +112,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const clearAuthData = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
+    localStorage.removeItem('currentWorkspaceId'); // ワークスペース情報もクリア
     setIsAuthenticated(false);
     setUser(null);
     setError(null);

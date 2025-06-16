@@ -278,7 +278,7 @@ const ManualView: React.FC = () => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-foreground">業務マニュアル</h1>
-              <p className="text-muted-foreground">組織の業務マニュアルを管理します</p>
+              <p className="text-muted-foreground">チームの業務マニュアルを管理します</p>
             </div>
             <Button onClick={() => navigate('/manual/create')}>
               <Plus className="h-4 w-4 mr-2" />

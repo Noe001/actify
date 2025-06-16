@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import Header from '@/components/Header'
+import OrganizationGuard from '@/components/OrganizationGuard'
 import { useNavigate } from 'react-router-dom'
 
 const KnowledgeCreationPage = () => {
@@ -74,7 +75,8 @@ const KnowledgeCreationPage = () => {
   return (
     <>
       <Header />
-      <div className="p-6 bg-background min-h-screen">
+      <OrganizationGuard feature="ナレッジベース">
+        <div className="p-6 bg-background min-h-screen">
         <div className="mb-6">
           <Button 
             variant="ghost" 
@@ -265,6 +267,7 @@ const KnowledgeCreationPage = () => {
           </CardContent>
         </Card>
       </div>
+      </OrganizationGuard>
     </>
   )
 }

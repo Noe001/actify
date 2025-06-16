@@ -35,7 +35,7 @@ class UserSerializer < ActiveModel::Serializer
     object.monthly_overtime_hours
   end
 
-  # 所属組織の情報（N+1問題対応済み）
+  # 所属チームの情報（N+1問題対応済み）
   def organizations
     # eager loadingされたassociationを活用
     # organization_membershipsとorganizationが既にロードされていることを前提とする

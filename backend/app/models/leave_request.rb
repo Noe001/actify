@@ -1,5 +1,6 @@
 class LeaveRequest < ApplicationRecord
   belongs_to :user
+  belongs_to :workspace, optional: true
 
   validates :leave_type, presence: true, inclusion: { in: %w[paid sick other] }
   validates :start_date, :end_date, presence: true

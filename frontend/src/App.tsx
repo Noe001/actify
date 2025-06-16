@@ -1,40 +1,53 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 // 認証コンテキスト
 import { AuthProvider } from './contexts/AuthContext';
 
-// テーマコンテキスト
-import { ThemeProvider } from './contexts/ThemeContext';
+  // テーマコンテキスト
+  import { ThemeProvider } from './contexts/ThemeContext';
+  
+  // チームコンテキスト
+  import { OrganizationProvider } from './contexts/OrganizationContext';
 
-// 認証が必要なルートのプロテクター
+// ワークスペースコンテキスト
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
+  
+  // 認証が必要なルートのプロテクター
 import ProtectedRoute from './components/ProtectedRoute';
 
 // ビューのインポート
 import LoginView from './pages/general/Login';
 import SignupView from './pages/general/Signup';
 import DashboardView from './pages/general/Dashboard';
-import OrganizationsView from './pages/general/Organizations';
-import OrganizationDetailView from './pages/general/OrganizationDetail';
 import TaskManagerView from './pages/general/TaskManager';
 import TeamChatView from './pages/general/TeamChat';
-import KnowledgeBaseView from './pages/general/KnowledgeBase';
-import ManualView from './pages/general/Manual';
-import ManualCreateView from './pages/general/ManualCreate';
-import ManualEditView from './pages/general/ManualEdit';
 import MeetingView from './pages/general/Meeting';
-import ProfileView from './pages/general/Profile';
-import SettingsView from './pages/general/Settings';
-import CreateTaskView from './pages/general/CreateTask';
 import AttendanceView from './pages/general/Attendance';
+import ManualView from './pages/general/Manual';
+import ProfileView from './pages/general/Profile';
+import WorkspaceSetup from './pages/general/WorkspaceSetup';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import { Toaster } from 'sonner';
 
 const App = () => (
-  <ThemeProvider>
-  <AuthProvider>
-    <Router>
-      <Routes>
-        {/* 認証不要のルート */}
+      <ThemeProvider>
+    <AuthProvider>
+      <WorkspaceProvider>
+     <OrganizationProvider>
+      <Router>
+            <div className="App">
+        <Routes>
+                {/* 認証が不要なルート */}
         <Route path="/login" element={<LoginView />} />
         <Route path="/signup" element={<SignupView />} />
+        
+        {/* 企業セットアップ（認証は必要だが企業参加は不要） */}
+        <Route path="/workspace-setup" element={
+          <ProtectedRoute requireWorkspace={false} preventWorkspaceAccess={true}>
+            <WorkspaceSetup />
+          </ProtectedRoute>
+        } />
 
         {/* 認証が必要なルート */}
         <Route path="/" element={
@@ -43,15 +56,12 @@ const App = () => (
           </ProtectedRoute>
         } />
         
-        <Route path="/organizations" element={
-          <ProtectedRoute>
-            <OrganizationsView />
-          </ProtectedRoute>
-        } />
+                
         
-        <Route path="/organizations/:id" element={
-          <ProtectedRoute>
-            <OrganizationDetailView />
+                {/* 管理者専用 */}
+                <Route path="/admin/dashboard" element={
+          <ProtectedRoute requireWorkspace={true}>
+                    <AdminDashboard />
           </ProtectedRoute>
         } />
         
@@ -62,26 +72,19 @@ const App = () => (
           </ProtectedRoute>
         } />
         
-        {/* タスク作成 */}
-        <Route path="/tasks/create" element={
-          <ProtectedRoute>
-            <CreateTaskView />
-          </ProtectedRoute>
-        } />
-        
-        {/* タスク編集 */}
-        <Route path="/tasks/edit/:taskId" element={
-          <ProtectedRoute>
-            <CreateTaskView />
-          </ProtectedRoute>
-        } />
-
-        {/* チーム会話 */}
-        <Route path="/team_chat" element={
+                {/* チームチャット */}
+                <Route path="/chat" element={
           <ProtectedRoute>
             <TeamChatView />
           </ProtectedRoute>
         } />
+                
+                {/* ミーティング */}
+                <Route path="/meetings" element={
+                  <ProtectedRoute>
+                    <MeetingView />
+                  </ProtectedRoute>
+                } />
 
         {/* 勤怠管理 */}
         <Route path="/attendance" element={
@@ -90,38 +93,10 @@ const App = () => (
           </ProtectedRoute>
         } />
 
-        {/* ナレッジベース */}
-        <Route path="/knowledge_base" element={
-          <ProtectedRoute>
-            <KnowledgeBaseView />
-          </ProtectedRoute>
-        } />
-
         {/* マニュアル */}
-        <Route path="/manual" element={
+                <Route path="/manuals" element={
           <ProtectedRoute>
             <ManualView />
-          </ProtectedRoute>
-        } />
-        
-        {/* マニュアル作成 */}
-        <Route path="/manual/create" element={
-          <ProtectedRoute>
-            <ManualCreateView />
-          </ProtectedRoute>
-        } />
-        
-        {/* マニュアル編集 */}
-        <Route path="/manual/edit/:id" element={
-          <ProtectedRoute>
-            <ManualEditView />
-          </ProtectedRoute>
-        } />
-
-        {/* ミーティング */}
-        <Route path="/meeting" element={
-          <ProtectedRoute>
-            <MeetingView />
           </ProtectedRoute>
         } />
 
@@ -132,23 +107,16 @@ const App = () => (
           </ProtectedRoute>
         } />
 
-        {/* 設定 */}
-        <Route path="/settings" element={
-          <ProtectedRoute>
-            <SettingsView />
-          </ProtectedRoute>
-        } />
-
-        {/* 不明なルートは全てProtectedRouteでラップして、認証されていない場合はログインにリダイレクト */}
-        <Route path="*" element={
-          <ProtectedRoute>
-            <Navigate to="/" replace />
-          </ProtectedRoute>
-        } />
-      </Routes>
-    </Router>
-  </AuthProvider>
-  </ThemeProvider>
+                {/* 404 */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+              <Toaster />
+            </div>
+      </Router>
+     </OrganizationProvider>
+      </WorkspaceProvider>
+    </AuthProvider>
+    </ThemeProvider>
 );
 
 export default App;

@@ -1,5 +1,6 @@
 class Attendance < ApplicationRecord
   belongs_to :user
+  belongs_to :workspace, optional: true
 
   validates :date, presence: true, uniqueness: { scope: :user_id }
   validates :status, presence: true, inclusion: { in: %w[pending present absent late half_day holiday] }

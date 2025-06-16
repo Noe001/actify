@@ -1,7 +1,8 @@
-import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +15,7 @@ import {
   Bell,
   Home,
   MessageSquare,
-  Search,
+
   Menu,
   User,
   Settings,
@@ -24,14 +25,17 @@ import {
   Database,
   Calendar,
   Plus,
-  Building2,
   Clock,
   Moon,
   Sun,
-} from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useTheme } from "@/contexts/ThemeContext";
-import { createAvatarProps } from "@/utils/avatarUtils";
+  Shield
+  } from "lucide-react";
+  import { useAuth } from "@/contexts/AuthContext";
+  import { useTheme } from "@/contexts/ThemeContext";
+
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 // ナビゲーションリンクの定義
 const navigationLinks = [
@@ -39,7 +43,6 @@ const navigationLinks = [
   { path: "/tasks", icon: CheckSquare, label: "タスク管理" },
   { path: "/team_chat", icon: MessageSquare, label: "チーム会話" },
   { path: "/attendance", icon: Clock, label: "勤怠管理" },
-  { path: "/organizations", icon: Building2, label: "組織管理" },
 ];
 
 // 新規作成メニュー項目
@@ -54,11 +57,22 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { currentWorkspace, isWorkspaceAdmin } = useWorkspace();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   // ログアウト処理
   const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
     await logout();
-    navigate('/login', { replace: true });
+      navigate('/login');
+      toast.success('ログアウトしました');
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+      toast.error('ログアウトに失敗しました');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   // ユーザー表示名の取得
@@ -69,15 +83,8 @@ const Header: React.FC = () => {
     if (user?.name) {
       return user.name;
     }
-    return "ユーザー";
-  };
-
-  // アバター画像のプロップスを取得
-  const avatarProps = createAvatarProps(
-    user?.avatarUrl,
-    getUserDisplayName(),
-    "ユーザーアバター"
-  );
+          return "ユーザー";
+    };
   
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background shadow-md">
@@ -189,10 +196,7 @@ const Header: React.FC = () => {
           </DropdownMenu>
         </nav>
         
-        <div className="flex-1 mx-4 relative hidden sm:block">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-          <Input type="text" placeholder="検索..." className="pl-8" />
-        </div>
+                         <div className="flex-1"></div>
         
         <div className="flex items-center gap-2">
           {/* テーマ切り替えボタン */}
@@ -204,6 +208,8 @@ const Header: React.FC = () => {
           >
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
+          
+
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -241,34 +247,60 @@ const Header: React.FC = () => {
             </DropdownMenuContent>
           </DropdownMenu>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <img 
-                  {...avatarProps}
-                  className="w-8 h-8 rounded-full"
-                />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{getUserDisplayName()}</DropdownMenuLabel>
+                      <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full [&_svg]:size-6">
+                <Avatar className="h-7 w-7">
+                  <AvatarImage src={user?.avatarUrl} alt={user?.name} />
+                  <AvatarFallback>
+                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{getUserDisplayName()}</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user?.email}
+                  </p>
+                  {user?.department && (
+                    <Badge variant="secondary" className="w-fit text-xs">
+                      {user.department}
+                    </Badge>
+                  )}
+                </div>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to="/profile" className="cursor-pointer flex items-center">
+              
+              {/* 管理者ダッシュボード */}
+              {isWorkspaceAdmin && (
+                <>
+                  <DropdownMenuItem onClick={() => navigate('/admin/dashboard')}>
+                    <Shield className="mr-2 h-4 w-4" />
+                    <span>管理者ダッシュボード</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
                   <User className="mr-2 h-4 w-4" />
-                  プロフィール
-                </Link>
+                <span>プロフィール</span>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/settings" className="cursor-pointer flex items-center">
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
                   <Settings className="mr-2 h-4 w-4" />
-                  設定
-                </Link>
+                <span>設定</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer flex items-center">
+              <DropdownMenuItem 
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="text-red-600 focus:text-red-600"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
-                ログアウト
+                <span>{isLoggingOut ? 'ログアウト中...' : 'ログアウト'}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

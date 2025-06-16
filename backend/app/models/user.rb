@@ -3,6 +3,9 @@ class User < ApplicationRecord
   has_secure_password
 
   # リレーションシップ
+  has_many :workspace_memberships, dependent: :destroy
+  has_many :workspaces, through: :workspace_memberships
+  belongs_to :current_workspace, class_name: 'Workspace', optional: true
   has_many :organization_memberships, dependent: :destroy
   has_many :organizations, through: :organization_memberships
   has_many :received_invitations, class_name: 'Invitation', foreign_key: 'recipient_id', dependent: :destroy
@@ -48,14 +51,69 @@ class User < ApplicationRecord
     JWT.encode(payload, secret_key, JWTConfig::ALGORITHM)
   end
 
-  # ユーザーが所属する組織を作成するメソッド
+  # 企業を作成するメソッド
+  def create_workspace(name, subdomain, description = '', options = {})
+    workspace_params = {
+      name: name, 
+      subdomain: subdomain,
+      description: description
+    }
+    
+    # オプションパラメータを追加
+    workspace_params[:is_public] = options[:is_public] if options.key?(:is_public)
+    workspace_params[:primary_color] = options[:primary_color] if options[:primary_color].present?
+    workspace_params[:accent_color] = options[:accent_color] if options[:accent_color].present?
+    workspace_params[:logo_url] = options[:logo_url] if options[:logo_url].present?
+    
+    workspace = Workspace.create!(workspace_params)
+    workspace.add_admin(self) # 作成者を管理者として追加
+    workspace
+  end
+
+  # 企業に参加するメソッド
+  def join_workspace(workspace, role = 'member')
+    workspace.add_member(self, role)
+  end
+
+  # 現在の企業を取得（最後にアクティブだった企業）
+  def current_workspace
+    workspace_memberships.active
+                         .joins(:workspace)
+                         .where(workspaces: { status: 'active' })
+                         .order(:last_activity_at)
+                         .last&.workspace
+  end
+
+  # 企業内での権限チェック
+  def workspace_admin?(workspace)
+    return false unless workspace
+    workspace_memberships.find_by(workspace: workspace, status: 'active')&.admin? || false
+  end
+
+  def workspace_department_admin?(workspace)
+    return false unless workspace
+    workspace_memberships.find_by(workspace: workspace, status: 'active')&.department_admin? || false
+  end
+
+  def workspace_member?(workspace)
+    return false unless workspace
+    workspace_memberships.exists?(workspace: workspace, status: 'active')
+  end
+
+  # 企業内での役割を取得
+  def workspace_role(workspace)
+    return nil unless workspace
+    workspace_memberships.find_by(workspace: workspace, status: 'active')&.role
+  end
+
+  # ユーザーが所属する組織を作成するメソッド（レガシー）
   def create_organization(name, description = '')
     organization = Organization.create!(name: name, description: description)
     organization.add_admin(self)
     organization
   end
 
-  # ユーザーが組織に参加するメソッド
+  # ユーザーが組織に参加するメソッド（レガシー）
   def join_organization(organization, role = 'member')
     organization.add_member(self, role)
   end
@@ -121,20 +179,30 @@ class User < ApplicationRecord
     ).sum(:overtime_hours) || 0
   end
 
-  # 権限管理メソッド群
+  # 権限管理メソッド群（新しいワークスペースベース）
   
   # システム管理者かどうかを判定
   def system_admin?
     system_admin || role == 'admin'
   end
   
-  # 組織管理者かどうかを判定  
+  # 企業管理者かどうかを判定（特定の企業内で）
+  def workspace_admin_for?(workspace)
+    return false unless workspace
+    workspace_admin?(workspace) || system_admin?
+  end
+  
+  # 部門管理者かどうかを判定（特定の企業内で）
+  def department_admin_for?(workspace)
+    return false unless workspace
+    workspace_department_admin?(workspace) || workspace_admin?(workspace) || system_admin?
+  end
+
+  # レガシー権限メソッド（段階的廃止予定）
   def organization_admin?
     organization_admin || system_admin?
   end
   
-  # 部門管理者かどうかを判定
-  # 新しい権限フラグを優先し、フォールバックとしてレガシー実装を保持
   def department_admin?
     # 1. 新しい権限フラグをチェック（最優先）
     return true if department_admin
@@ -146,8 +214,7 @@ class User < ApplicationRecord
     return true if role.in?(['admin', 'department_manager', 'department_admin'])
     
     # 4. レガシー実装（段階的廃止予定）
-    # DEPRECATION WARNING: この部分は将来的に削除されます
-    Rails.logger.warn "[DEPRECATION] position-based admin detection used for user #{id}. Please update to use department_admin flag."
+    Rails.logger.warn "[DEPRECATION] position-based admin detection used for user #{id}. Please update to use workspace-based permissions."
     
     return false unless position.present?
     
@@ -161,32 +228,29 @@ class User < ApplicationRecord
     admin_positions.any? { |admin_pos| normalized_position == admin_pos.downcase }
   end
   
-  # 特定のリソースに対する権限チェック（将来のRBACに向けた準備）
-  def can_manage?(resource_type, scope = :own)
+  # 新しい権限チェックメソッド（ワークスペースベース）
+  def can_manage?(resource_type, workspace, scope = :own)
+    return false unless workspace
+    
     case scope
     when :system
       system_admin?
-    when :organization  
-      organization_admin?
+    when :workspace
+      workspace_admin?(workspace) || system_admin?
     when :department
-      department_admin? || organization_admin?
+      department_admin_for?(workspace)
     when :own
-      true # 基本的に自分のリソースは管理可能
+      workspace_member?(workspace) # 企業メンバーであれば自分のリソースは管理可能
     else
       false
     end
   end
 
-  # TODO: 将来的な権限管理システムの改善案
-  # 1. 専用のPermissionテーブルを作成
-  # 2. CanCanCan/Punditなどの認可ライブラリの導入
-  # 3. 部門管理者フラグ(department_admin)カラムの追加
-  # 4. Role-Based Access Control (RBAC)の実装
-  #
-  # 改善例:
-  # def department_admin?
-  #   department_admin || has_role?(:department_manager, department)
-  # end
+  # セキュリティ: 企業データへのアクセス権限チェック
+  def can_access_workspace_data?(workspace)
+    return false unless workspace
+    workspace_member?(workspace) || system_admin?
+  end
 
   private
 

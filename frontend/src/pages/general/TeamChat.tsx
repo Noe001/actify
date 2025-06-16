@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Header from "@/components/Header";
+import OrganizationGuard from "@/components/OrganizationGuard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -141,7 +142,8 @@ const TeamChatView: React.FC = () => {
   return (
     <div className="flex flex-col h-screen">
       <Header />
-      <div className="flex flex-1 overflow-hidden">
+      <OrganizationGuard feature="チームチャット">
+        <div className="flex flex-1 overflow-hidden">
         {/* サイドバー */}
         <div className="w-64 bg-background border-r flex flex-col">
           <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
@@ -332,6 +334,7 @@ const TeamChatView: React.FC = () => {
           </div>
         </div>
       </div>
+      </OrganizationGuard>
     </div>
   );
 };

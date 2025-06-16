@@ -29,11 +29,11 @@ class TaskSerializer < ActiveModel::Serializer
     end
   end
   
-  # 組織名を返す（存在する場合）
+  # チーム名を返す（存在する場合）
   def organization_name
     return nil if object.organization_id.blank?
     
-    # 組織オブジェクトがすでに読み込まれている場合は、そのオブジェクトを使用
+    # チームオブジェクトがすでに読み込まれている場合は、そのオブジェクトを使用
     # これによりN+1クエリを防ぐ
     if object.association(:organization).loaded? && object.organization.present?
       return object.organization.name

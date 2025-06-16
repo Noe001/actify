@@ -21,12 +21,12 @@ class ApplicationController < ActionController::API
 
   private
 
-  # N+1問題対策：ユーザーを組織関連データとともに取得
+  # N+1問題対策：ユーザーをチーム関連データとともに取得
   def find_user_with_organizations(user_id)
     User.includes(organization_memberships: :organization).find(user_id)
   end
 
-  # N+1問題対策：現在のユーザーを組織関連データとともに取得
+  # N+1問題対策：現在のユーザーをチーム関連データとともに取得
   def current_user_with_organizations
     return nil unless current_user
     @current_user_with_organizations ||= find_user_with_organizations(current_user.id)

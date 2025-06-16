@@ -23,12 +23,12 @@ class Organization < ApplicationRecord
     add_member(user, 'admin')
   end
 
-  # ユーザーがこの組織の管理者かどうかを確認するメソッド
+  # ユーザーがこのチームの管理者かどうかを確認するメソッド
   def admin?(user)
     organization_memberships.exists?(user: user, role: 'admin')
   end
 
-  # ユーザーがこの組織のメンバーかどうかを確認するメソッド
+  # ユーザーがこのチームのメンバーかどうかを確認するメソッド
   def member?(user)
     organization_memberships.exists?(user: user)
   end

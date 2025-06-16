@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Header from "@/components/Header"
+import OrganizationGuard from "@/components/OrganizationGuard"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Bar, 
@@ -588,9 +589,10 @@ const AttendanceView: React.FC = () => {
   return (
     <div className="flex flex-col h-full">
       <Header />
-      <div className="container mx-auto py-4">
-        <h1 className="text-2xl font-bold">勤怠管理</h1>
-      </div>
+      <OrganizationGuard feature="勤怠管理">
+        <div className="container mx-auto py-4">
+          <h1 className="text-2xl font-bold">勤怠管理</h1>
+        </div>
       <div className="flex-1 container mx-auto py-6 space-y-6">
         {/* 現在時刻と打刻ボタン */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1070,6 +1072,7 @@ const AttendanceView: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </OrganizationGuard>
     </div>
   )
 }

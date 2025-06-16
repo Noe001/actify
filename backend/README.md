@@ -117,7 +117,7 @@ Things you may want to cover:
 ## N+1問題対策
 
 ### 概要
-UserSerializerで組織情報を表示する際のN+1問題を解決するため、eager loadingを実装しています。
+UserSerializerでチーム情報を表示する際のN+1問題を解決するため、eager loadingを実装しています。
 
 ### 実装内容
 
@@ -168,9 +168,9 @@ UserSerializer.new(user).as_json
 ```
 
 # N+1問題の解決済み：パフォーマンステスト例
-User.count #=> 5組織所属の場合：6回→1回（83%削減）
-User.count #=> 10組織所属の場合：11回→1回（91%削減）
-User.count #=> 20組織所属の場合：21回→1回（95%削減）
+User.count #=> 5チーム所属の場合：6回→1回（83%削減）
+User.count #=> 10チーム所属の場合：11回→1回（91%削減）
+User.count #=> 20チーム所属の場合：21回→1回（95%削減）
 
 ## APIエラーコード仕様
 

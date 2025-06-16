@@ -75,7 +75,7 @@ class Api::InvitationsController < ApplicationController
 
     # 既に所属している場合はエラー
     if @invitation.organization.member?(current_user)
-      return render json: { error: '既にこの組織に所属しています' }, status: :unprocessable_entity
+      return render json: { error: '既にこのチームに所属しています' }, status: :unprocessable_entity
     end
     
     @invitation.increment_usage!

@@ -29,16 +29,18 @@ const CACHE_TTL = 1000 * 60 * 5; // 5分間キャッシュを保持
  */
 const taskService = {
   /**
-   * タスク一覧を取得
+   * タスク一覧を取得（チーム対応）
+   * @param organizationId チームID
    * @param page ページ番号
    * @param perPage 1ページあたりの件数
    * @param filters フィルタ条件
    */
-  async getTasks(page = 1, perPage = 10, filters?: Record<string, any>): Promise<ApiResponse<PaginatedResponse<Task>>> {
+  async getTasks(organizationId: string, page = 1, perPage = 10, filters?: Record<string, any>): Promise<ApiResponse<PaginatedResponse<Task>>> {
     try {
     const response = await api.get<any>('/api/tasks', { 
       page, 
       per_page: perPage,
+      organization_id: organizationId,
       ...filters
     });
 
@@ -53,7 +55,8 @@ const taskService = {
             current_page: response.data.meta.current_page,
             last_page: response.data.meta.total_pages,
             per_page: response.data.meta.per_page,
-            total: response.data.meta.total_count
+            total_count: response.data.meta.total_count,
+            total_pages: response.data.meta.total_pages
           }
         },
             message: response.message || 'タスクを取得しました'
@@ -70,7 +73,8 @@ const taskService = {
                 current_page: 1, 
                 last_page: 1, 
                 per_page: response.data.length, 
-                total: response.data.length 
+                total_count: response.data.length,
+                total_pages: 1
               } 
             }, 
             message: response.message || 'タスクを取得しました' 
@@ -164,13 +168,15 @@ const taskService = {
   },
 
   /**
-   * 新しいタスクを作成
+   * 新しいタスクを作成（チーム対応）
+   * @param organizationId チームID
    * @param taskData タスクデータ
    */
-  async createTask(taskData: TaskData): Promise<ApiResponse<Task>> {
+  async createTask(organizationId: string, taskData: TaskData): Promise<ApiResponse<Task>> {
     try {
       // サブタスク関連の処理を削除
-      const response = await api.post('/api/tasks', { task: taskData });
+      const taskDataWithOrg = { ...taskData, organization_id: organizationId };
+      const response = await api.post('/api/tasks', { task: taskDataWithOrg });
       
       if (response.success && response.data) {
         return {

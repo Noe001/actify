@@ -20,11 +20,11 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   const [currentOrganization, setCurrentOrganizationState] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ローカルストレージから組織情報を復元
+  // ローカルストレージからチーム情報を復元
   useEffect(() => {
     const savedOrgId = localStorage.getItem('currentOrganizationId');
     if (savedOrgId) {
-      // 組織一覧を取得してから現在の組織を設定
+      // チーム一覧を取得してから現在のチームを設定
       refreshOrganizations().then(() => {
         const savedOrg = organizations.find(org => org.id === savedOrgId);
         if (savedOrg) {
@@ -51,13 +51,13 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
       const data = await organizationService.getOrganizations();
       setOrganizations(data);
     } catch (error) {
-      console.error('組織の取得に失敗しました:', error);
+      console.error('チームの取得に失敗しました:', error);
       // エラー時はダミーデータを設定
       setOrganizations([
         {
           id: '1',
-          name: 'サンプル組織',
-          description: 'デモ用の組織です',
+          name: 'サンプルチーム',
+          description: 'デモ用のチームです',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }

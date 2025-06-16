@@ -73,7 +73,7 @@ class Permission < ApplicationRecord
   enum scope: {
     own: 'own',           # 自分のリソースのみ
     department: 'department', # 同じ部門
-    organization: 'organization', # 組織全体
+    organization: 'organization', # チーム全体
     system: 'system'      # システム全体
   }
 end

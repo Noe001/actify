@@ -14,7 +14,7 @@ const OrganizationSelector: React.FC = () => {
   const { organizations, currentOrganization, loading, setCurrentOrganization } = useOrganization();
 
   if (loading) {
-    return <LoadingIndicator size="sm" text="組織を読み込み中..." />;
+    return <LoadingIndicator size="sm" text="チームを読み込み中..." />;
   }
 
   const handleOrganizationChange = (organizationId: string) => {
@@ -32,7 +32,7 @@ const OrganizationSelector: React.FC = () => {
         onValueChange={handleOrganizationChange}
       >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="組織を選択..." />
+          <SelectValue placeholder="チームを選択..." />
         </SelectTrigger>
         <SelectContent>
           {organizations.map((org) => (

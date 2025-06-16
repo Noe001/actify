@@ -3,6 +3,7 @@ class Task < ApplicationRecord
   
   belongs_to :user, foreign_key: 'assigned_to', optional: true
   belongs_to :organization, optional: true
+  belongs_to :workspace, optional: true
   
   # ActiveStorage関連
   has_many_attached :attachments

@@ -29,8 +29,8 @@ const CACHE_TTL = 1000 * 60 * 5; // 5分間キャッシュを保持
  */
 const taskService = {
   /**
-   * タスク一覧を取得（組織対応）
-   * @param organizationId 組織ID
+   * タスク一覧を取得（チーム対応）
+   * @param organizationId チームID
    * @param page ページ番号
    * @param perPage 1ページあたりの件数
    * @param filters フィルタ条件
@@ -168,8 +168,8 @@ const taskService = {
   },
 
   /**
-   * 新しいタスクを作成（組織対応）
-   * @param organizationId 組織ID
+   * 新しいタスクを作成（チーム対応）
+   * @param organizationId チームID
    * @param taskData タスクデータ
    */
   async createTask(organizationId: string, taskData: TaskData): Promise<ApiResponse<Task>> {

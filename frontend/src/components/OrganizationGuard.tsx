@@ -15,7 +15,7 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children, feature
   const { currentOrganization, loading } = useOrganization();
 
   if (loading) {
-    return <LoadingIndicator fullPage text="組織情報を読み込み中..." />;
+    return <LoadingIndicator fullPage text="チーム情報を読み込み中..." />;
   }
 
   if (!currentOrganization) {
@@ -28,16 +28,16 @@ const OrganizationGuard: React.FC<OrganizationGuardProps> = ({ children, feature
                 <Building2 className="h-8 w-8 text-muted-foreground" />
               </div>
             </div>
-            <h2 className="text-xl font-semibold mb-2">組織を選択してください</h2>
+            <h2 className="text-xl font-semibold mb-2">チームを選択してください</h2>
             <p className="text-muted-foreground mb-4">
-              {feature}を利用するには、まず組織を選択する必要があります。
+              {feature}を利用するには、まずチームを選択する必要があります。
             </p>
             <div className="flex flex-col gap-2">
               <Button asChild>
-                <Link to="/organizations">組織を選択</Link>
+                <Link to="/">ホームに戻る</Link>
               </Button>
               <p className="text-xs text-muted-foreground">
-                組織に参加していない場合は、新しい組織を作成するか招待コードで参加してください。
+                チームに参加していない場合は、新しいチームを作成するか招待コードで参加してください。
               </p>
             </div>
           </CardContent>

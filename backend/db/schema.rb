@@ -136,9 +136,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_28_053438) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "parent_task_id"
+    t.string "workspace_id"
     t.index ["assigned_to"], name: "index_tasks_on_assigned_to"
     t.index ["organization_id"], name: "index_tasks_on_organization_id"
     t.index ["parent_task_id"], name: "index_tasks_on_parent_task_id"
+    t.index ["workspace_id"], name: "index_tasks_on_workspace_id"
   end
 
   create_table "users", id: :string, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
@@ -157,10 +159,51 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_28_053438) do
     t.string "department"
     t.string "position"
     t.text "bio"
+    t.string "current_workspace_id"
+    t.index ["current_workspace_id"], name: "index_users_on_current_workspace_id"
     t.index ["department_admin"], name: "index_users_on_department_admin"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["organization_admin"], name: "index_users_on_organization_admin"
     t.index ["system_admin"], name: "index_users_on_system_admin"
+  end
+
+  create_table "workspace_memberships", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.string "user_id", null: false
+    t.string "workspace_id", null: false
+    t.string "role", default: "member"
+    t.string "status", default: "active"
+    t.datetime "joined_at"
+    t.datetime "left_at"
+    t.datetime "last_activity_at"
+    t.json "preferences"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["last_activity_at"], name: "index_workspace_memberships_on_last_activity_at"
+    t.index ["role"], name: "index_workspace_memberships_on_role"
+    t.index ["status"], name: "index_workspace_memberships_on_status"
+    t.index ["user_id", "workspace_id"], name: "index_workspace_memberships_on_user_id_and_workspace_id", unique: true
+    t.index ["user_id"], name: "index_workspace_memberships_on_user_id"
+    t.index ["workspace_id"], name: "index_workspace_memberships_on_workspace_id"
+  end
+
+  create_table "workspaces", id: :string, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.string "subdomain", null: false
+    t.string "invite_code"
+    t.string "status", default: "active"
+    t.boolean "is_public", default: false
+    t.string "logo_url"
+    t.string "primary_color", default: "#4A154B"
+    t.string "accent_color", default: "#007A5A"
+    t.json "settings"
+    t.datetime "archived_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["invite_code"], name: "index_workspaces_on_invite_code", unique: true
+    t.index ["is_public"], name: "index_workspaces_on_is_public"
+    t.index ["status"], name: "index_workspaces_on_status"
+    t.index ["subdomain"], name: "index_workspaces_on_subdomain", unique: true
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
@@ -170,4 +213,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_28_053438) do
   add_foreign_key "manuals", "users"
   add_foreign_key "organization_memberships", "organizations"
   add_foreign_key "organization_memberships", "users"
+  add_foreign_key "tasks", "workspaces"
+  add_foreign_key "users", "workspaces", column: "current_workspace_id"
+  add_foreign_key "workspace_memberships", "users"
+  add_foreign_key "workspace_memberships", "workspaces"
 end

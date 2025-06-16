@@ -11,7 +11,7 @@ class Api::OrganizationsController < ApplicationController
   def show
     @organization = Organization.find(params[:id])
     
-    # ユーザーがこの組織のメンバーかチェック
+    # ユーザーがこのチームのメンバーかチェック
     unless @organization.member?(current_user)
       return render json: { error: '権限がありません' }, status: :forbidden
     end
@@ -37,13 +37,13 @@ class Api::OrganizationsController < ApplicationController
     
     # 既に所属している場合はエラー
     if @organization.member?(current_user)
-      return render json: { error: '既にこの組織に所属しています' }, status: :unprocessable_entity
+      return render json: { error: '既にこのチームに所属しています' }, status: :unprocessable_entity
     end
     
     current_user.join_organization(@organization)
     render json: @organization
   rescue ActiveRecord::RecordNotFound
-    render json: { error: '組織が見つかりませんでした' }, status: :not_found
+    render json: { error: 'チームが見つかりませんでした' }, status: :not_found
   end
 
   private

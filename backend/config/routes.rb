@@ -27,6 +27,25 @@ Rails.application.routes.draw do
     post '/sessions', to: 'sessions#create'
     delete '/sessions', to: 'sessions#destroy'
     
+    # 企業管理（新しいワークスペースベース）
+    resources :workspaces do
+      member do
+        get :stats
+        get :members
+        post :add_member
+        delete 'members/:user_id', to: 'workspaces#remove_member'
+        patch 'members/:user_id/role', to: 'workspaces#update_member_role'
+      end
+    end
+    post '/workspaces/join', to: 'workspaces#join'
+    
+    # 管理者専用エンドポイント
+    namespace :admin do
+      get '/dashboard', to: 'dashboard#index'
+      get '/analytics', to: 'dashboard#analytics'
+      get '/security', to: 'dashboard#security'
+    end
+    
     # マニュアル関連のエンドポイント
     resources :manuals do
       collection do
@@ -73,7 +92,7 @@ Rails.application.routes.draw do
     # プロフィール管理
     put '/profile', to: 'users#update_profile'
     
-    # 組織関連
+    # 組織関連（レガシー - 段階的廃止予定）
     resources :organizations do
       member do
         post :add_member

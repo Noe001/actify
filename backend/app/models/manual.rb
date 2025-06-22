@@ -1,6 +1,7 @@
 class Manual < ApplicationRecord
   before_create :set_uuid
   belongs_to :user
+  belongs_to :workspace, optional: true
 
   # 状態を定義（文字列ベースのenum）
   enum status: {

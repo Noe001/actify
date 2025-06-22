@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Header from "@/components/Header";
+import OrganizationGuard from "@/components/OrganizationGuard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,27 +8,49 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Send, Paperclip, Smile, Bell, Settings, Users, Hash } from "lucide-react";
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { MessageCircle, Plus, Search } from 'lucide-react';
+import { toast } from 'sonner';
+import teamAdvancedService from '@/services/teamAdvancedService';
 
 interface Message {
-  id: number;
-  user: {
-    id: number;
-    name: string;
-    avatar?: string;
-    initials: string;
-  };
+  id: string;
   content: string;
-  timestamp: string;
-  attachments?: { name: string; url: string; type: string }[];
-  reactions?: { emoji: string; count: number }[];
+  message_type: string;
+  user: {
+    id: string;
+    name: string;
+    avatar_url?: string;
+  };
+  parent_message_id?: string;
+  reply_count: number;
+  is_edited: boolean;
+  edited_at?: string;
+  created_at: string;
+  files: Array<{
+    id: string;
+    filename: string;
+    content_type: string;
+    url: string;
+  }>;
 }
 
 interface Channel {
-  id: number;
+  id: string;
   name: string;
-  description?: string;
-  isPrivate: boolean;
-  unreadCount?: number;
+  description: string;
+  channel_type: string;
+  unread_count: number;
+  last_message_at: string;
+  message_count: number;
+  created_by: {
+    id: string;
+    name: string;
+  };
 }
 
 interface DirectMessage {
@@ -39,109 +62,182 @@ interface DirectMessage {
   unreadCount?: number;
 }
 
-const TeamChatView: React.FC = () => {
+const TeamChatView: React.FC<{ teamId: string }> = ({ teamId }) => {
   const [currentTab, setCurrentTab] = useState("channels");
-  const [currentChannelId, setCurrentChannelId] = useState<number>(1);
+  const [currentChannelId, setCurrentChannelId] = useState<string>("");
   const [currentDmUserId, setCurrentDmUserId] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [showCreateChannel, setShowCreateChannel] = useState(false);
+  const [newChannelData, setNewChannelData] = useState({
+    name: '',
+    description: '',
+    channel_type: 'public'
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // サンプルデータ
-  const channels: Channel[] = [
-    { id: 1, name: "一般", description: "一般的な話題のチャンネル", isPrivate: false, unreadCount: 0 },
-    { id: 2, name: "プロジェクトA", description: "プロジェクトAに関する議論", isPrivate: false, unreadCount: 3 },
-    { id: 3, name: "マーケティング", description: "マーケティング戦略の議論", isPrivate: true, unreadCount: 0 },
-    { id: 4, name: "アイデア", description: "新しいアイデアの共有", isPrivate: false, unreadCount: 0 },
-  ];
+  useEffect(() => {
+    loadChannels();
+  }, [teamId]);
 
-  const directMessages: DirectMessage[] = [
-    { userId: 1, name: "佐藤太郎", initials: "ST", status: "online", unreadCount: 2 },
-    { userId: 2, name: "鈴木花子", avatar: "/avatars/hanako.jpg", initials: "SH", status: "busy" },
-    { userId: 3, name: "田中誠", initials: "TM", status: "offline" },
-    { userId: 4, name: "伊藤美咲", initials: "IM", status: "away" },
-  ];
+  useEffect(() => {
+    if (selectedChannel) {
+      loadMessages();
+      markChannelAsRead();
+    }
+  }, [selectedChannel]);
 
-  const channelMessages: Message[] = [
-    {
-      id: 1,
-      user: { id: 1, name: "佐藤太郎", initials: "ST" },
-      content: "おはようございます！今日のミーティングの議題は何ですか？",
-      timestamp: "09:15",
-    },
-    {
-      id: 2,
-      user: { id: 2, name: "鈴木花子", avatar: "/avatars/hanako.jpg", initials: "SH" },
-      content: "新しいプロジェクトの進捗と、次週の予定確認です。資料を添付しておきます。",
-      timestamp: "09:17",
-      attachments: [{ name: "プロジェクト進捗.pdf", url: "#", type: "pdf" }],
-    },
-    {
-      id: 3,
-      user: { id: 3, name: "田中誠", initials: "TM" },
-      content: "承知しました。ミーティングの前に確認しておきます。",
-      timestamp: "09:20",
-      reactions: [{ emoji: "👍", count: 2 }],
-    },
-    {
-      id: 4,
-      user: { id: 4, name: "伊藤美咲", initials: "IM" },
-      content: "私も参加します。先週のフィードバックも議題に入れてもらえますか？",
-      timestamp: "09:22",
-    },
-    {
-      id: 5,
-      user: { id: 1, name: "佐藤太郎", initials: "ST" },
-      content: "了解です。議題に追加しておきます。",
-      timestamp: "09:25",
-    },
-  ];
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
-  const dmMessages: Message[] = [
-    {
-      id: 1,
-      user: { id: 1, name: "佐藤太郎", initials: "ST" },
-      content: "プロジェクトの進捗はどうですか？",
-      timestamp: "10:15",
-    },
-    {
-      id: 2,
-      user: { id: 2, name: "鈴木花子", avatar: "/avatars/hanako.jpg", initials: "SH" },
-      content: "順調に進んでいます。来週には完了予定です。",
-      timestamp: "10:17",
-    },
-  ];
-
-  // 選択されているチャネルまたはDMのメッセージを取得
-  const getActiveMessages = () => {
-    if (currentTab === "channels") {
-      return channelMessages;
-    } else {
-      return dmMessages;
+  const loadChannels = async () => {
+    try {
+      const response = await teamAdvancedService.getTeamChannels(teamId);
+      if (response.success) {
+        setChannels(response.data);
+        if (response.data.length > 0 && !selectedChannel) {
+          setSelectedChannel(response.data[0]);
+        }
+      }
+    } catch (error) {
+      toast.error('チャンネル一覧の取得に失敗しました');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // メッセージを送信
-  const sendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (message.trim() === "") return;
-    
-    // ここでメッセージ送信のAPIを呼び出す想定
-    // 実際の実装ではバックエンドAPIとの連携が必要
+  const loadMessages = async () => {
+    if (!selectedChannel) return;
 
-    
-    // メッセージを送信後、入力フィールドをクリア
-    setMessage("");
+    try {
+      const response = await teamAdvancedService.getChannelMessages(teamId, selectedChannel.id);
+      if (response.success) {
+        setMessages(response.data);
+      }
+    } catch (error) {
+      toast.error('メッセージの取得に失敗しました');
+    }
   };
 
-  // 新しいメッセージが追加されたら自動スクロール
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [getActiveMessages()]);
+  const markChannelAsRead = async () => {
+    if (!selectedChannel) return;
+
+    try {
+      await teamAdvancedService.markChannelAsRead(teamId, selectedChannel.id);
+      // チャンネル一覧の未読数を更新
+      setChannels(prev => prev.map(ch => 
+        ch.id === selectedChannel.id ? { ...ch, unread_count: 0 } : ch
+      ));
+    } catch (error) {
+      console.error('既読マークに失敗しました:', error);
+    }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const sendMessage = async () => {
+    if (!selectedChannel || !newMessage.trim()) return;
+
+    try {
+      const response = await teamAdvancedService.sendMessage(teamId, selectedChannel.id, {
+        content: newMessage
+      });
+
+      if (response.success) {
+        setMessages(prev => [...prev, response.data]);
+        setNewMessage('');
+        // チャンネル一覧のメッセージ数を更新
+        setChannels(prev => prev.map(ch => 
+          ch.id === selectedChannel.id 
+            ? { ...ch, message_count: ch.message_count + 1, last_message_at: new Date().toISOString() }
+            : ch
+        ));
+      }
+    } catch (error) {
+      toast.error('メッセージの送信に失敗しました');
+    }
+  };
+
+  const createChannel = async () => {
+    try {
+      const response = await teamAdvancedService.createTeamChannel(teamId, newChannelData);
+      if (response.success) {
+        setChannels(prev => [...prev, response.data]);
+        setShowCreateChannel(false);
+        setNewChannelData({ name: '', description: '', channel_type: 'public' });
+        toast.success('チャンネルを作成しました');
+      }
+    } catch (error) {
+      toast.error('チャンネルの作成に失敗しました');
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (!selectedChannel || files.length === 0) return;
+
+    try {
+      const response = await teamAdvancedService.sendMessage(teamId, selectedChannel.id, {
+        content: `${files.length}個のファイルを共有しました`,
+        files
+      });
+
+      if (response.success) {
+        setMessages(prev => [...prev, response.data]);
+        toast.success('ファイルを送信しました');
+      }
+    } catch (error) {
+      toast.error('ファイルの送信に失敗しました');
+    }
+  };
+
+  const formatMessageTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    } else {
+      return date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+    }
+  };
+
+  const getChannelIcon = (channelType: string) => {
+    switch (channelType) {
+      case 'private':
+        return <Lock className="h-4 w-4" />;
+      case 'direct':
+        return <Users className="h-4 w-4" />;
+      default:
+        return <Hash className="h-4 w-4" />;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">チャンネルを読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen">
       <Header />
-      <div className="flex flex-1 overflow-hidden">
+      <OrganizationGuard feature="チームチャット">
+        <div className="flex flex-1 overflow-hidden">
         {/* サイドバー */}
         <div className="w-64 bg-background border-r flex flex-col">
           <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
@@ -165,13 +261,13 @@ const TeamChatView: React.FC = () => {
                     <div className="flex items-center">
                       <Hash className="h-4 w-4 mr-2" />
                       <span>{channel.name}</span>
-                      {channel.isPrivate && <span className="ml-1 text-xs">🔒</span>}
+                      {channel.channel_type === "private" && <span className="ml-1 text-xs">🔒</span>}
                     </div>
-                    {channel.unreadCount ? (
+                    {channel.unread_count > 0 && (
                       <Badge variant="destructive" className="ml-auto">
-                        {channel.unreadCount}
+                        {channel.unread_count}
                       </Badge>
-                    ) : null}
+                    )}
                   </button>
                 ))}
                 <button className="w-full flex items-center p-2 text-muted-foreground text-sm hover:text-foreground">
@@ -260,37 +356,27 @@ const TeamChatView: React.FC = () => {
 
           {/* メッセージエリア */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {getActiveMessages().map((msg) => (
+            {messages.map((msg) => (
               <div key={msg.id} className="flex items-start space-x-3">
                 <Avatar>
-                  {msg.user.avatar ? <AvatarImage src={msg.user.avatar} alt={msg.user.name} /> : null}
-                  <AvatarFallback>{msg.user.initials}</AvatarFallback>
+                  {msg.user.avatar_url ? <AvatarImage src={msg.user.avatar_url} alt={msg.user.name} /> : null}
+                  <AvatarFallback>{msg.user.name.substring(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div>
                   <div className="flex items-baseline">
                     <span className="font-medium mr-2">{msg.user.name}</span>
-                    <span className="text-xs text-muted-foreground">{msg.timestamp}</span>
+                    <span className="text-xs text-muted-foreground">{formatMessageTime(msg.created_at)}</span>
                   </div>
                   <p className="mt-1">{msg.content}</p>
-                  {msg.attachments && (
+                  {msg.files && msg.files.length > 0 && (
                     <div className="mt-2 space-y-2">
-                      {msg.attachments.map((attachment, index) => (
-                        <Card key={index} className="p-2 bg-accent hover:bg-accent/80 cursor-pointer">
+                      {msg.files.map((file) => (
+                        <Card key={file.id} className="p-2 bg-accent hover:bg-accent/80 cursor-pointer">
                           <CardContent className="p-0 flex items-center">
                             <Paperclip className="h-4 w-4 mr-2" />
-                            <span className="text-sm">{attachment.name}</span>
+                            <span className="text-sm">{file.filename}</span>
                           </CardContent>
                         </Card>
-                      ))}
-                    </div>
-                  )}
-                  {msg.reactions && (
-                    <div className="mt-2 flex space-x-2">
-                      {msg.reactions.map((reaction, index) => (
-                        <Badge key={index} variant="outline" className="py-0 px-2">
-                          <span className="mr-1">{reaction.emoji}</span>
-                          <span className="text-xs">{reaction.count}</span>
-                        </Badge>
                       ))}
                     </div>
                   )}
@@ -332,6 +418,7 @@ const TeamChatView: React.FC = () => {
           </div>
         </div>
       </div>
+      </OrganizationGuard>
     </div>
   );
 };

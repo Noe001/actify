@@ -31,7 +31,7 @@
 # 推奨方法
 user.department_admin?  # 新しいフラグ + フォールバック
 user.system_admin?      # システム管理者
-user.organization_admin? # 組織管理者
+user.organization_admin? # チーム管理者
 
 # リソース別権限チェック（新機能）
 user.can_manage?('Manual', :department)  # 部門のマニュアル管理

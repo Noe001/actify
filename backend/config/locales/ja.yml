@@ -55,7 +55,7 @@ ja:
         bio: "自己紹介"
     models:
       user: "ユーザー"
-      organization: "組織"
+      organization: "チーム"
       task: "タスク"
       meeting: "ミーティング"
       attendance: "勤怠"

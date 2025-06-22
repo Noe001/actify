@@ -16,6 +16,9 @@ class User < ApplicationRecord
   has_many :organized_meetings, class_name: 'Meeting', foreign_key: 'organizer_id', dependent: :nullify
   has_many :attendances, dependent: :destroy
   has_many :leave_requests, dependent: :destroy
+  has_many :team_memberships, dependent: :destroy
+  has_many :teams, through: :team_memberships
+  has_many :led_teams, class_name: 'Team', foreign_key: 'leader_id', dependent: :nullify
 
   # バリデーション
   validates :name, presence: true, length: { in: 2..50 }

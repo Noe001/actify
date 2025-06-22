@@ -4,6 +4,7 @@ class Task < ApplicationRecord
   belongs_to :user, foreign_key: 'assigned_to', optional: true
   belongs_to :organization, optional: true
   belongs_to :workspace, optional: true
+  belongs_to :team, optional: true
   
   # ActiveStorage関連
   has_many_attached :attachments
@@ -40,6 +41,8 @@ class Task < ApplicationRecord
   scope :overdue, -> { where('due_date < ? AND status != ?', Date.current, 'completed') }
   scope :recent, -> { order(created_at: :desc) }
   scope :for_organization, ->(organization_id) { where(organization_id: organization_id) }
+  scope :for_team, ->(team_id) { where(team_id: team_id) }
+  scope :team_tasks, -> { where.not(team_id: nil) }
   scope :not_completed, -> { where.not(status: 'completed') }
   scope :parent_tasks, -> { where(parent_task_id: nil) }  # 親タスクのみ取得するスコープ
   
@@ -73,6 +76,43 @@ class Task < ApplicationRecord
     return 0 if subtasks.empty?
     completed_count = subtasks.where(status: 'completed').count
     (completed_count.to_f / subtasks.count * 100).round
+  end
+  
+  # チームタスクかどうか
+  def team_task?
+    team_id.present?
+  end
+  
+  # チームにタスクを割り当て
+  def assign_to_team(team, assigned_by = nil)
+    update!(team: team)
+    
+    # チームメンバーに限定されている場合のバリデーション
+    if assigned_to.present? && !team.member?(user)
+      errors.add(:assigned_to, 'はチームメンバーである必要があります')
+      return false
+    end
+    
+    # 活動ログを記録
+    if assigned_by && team
+      TeamActivity.log_task_assigned(team, assigned_by, self, user) if user
+    end
+    
+    true
+  end
+  
+  # チームタスクの完了時の処理
+  def complete_team_task!(completed_by = nil)
+    return false unless team_task?
+    
+    update!(status: 'completed')
+    
+    # 活動ログを記録
+    if completed_by && team
+      TeamActivity.log_task_completed(team, completed_by, self)
+    end
+    
+    true
   end
   
   private

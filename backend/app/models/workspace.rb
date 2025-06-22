@@ -8,6 +8,7 @@ class Workspace < ApplicationRecord
   has_many :manuals, dependent: :destroy
   has_many :attendances, through: :users
   has_many :leave_requests, through: :users
+  has_many :teams, dependent: :destroy
 
   # コールバック
   before_create :generate_invite_code

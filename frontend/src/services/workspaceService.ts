@@ -118,6 +118,12 @@ const workspaceService = {
     return response.data.data as WorkspaceMember[];
   },
 
+  // 企業メンバー一覧を取得（短縮形）
+  getMembers: async (id: string): Promise<{ success: boolean; data: WorkspaceMember[]; message: string }> => {
+    const response = await api.get(`/api/workspaces/${id}/members`);
+    return response.data;
+  },
+
   // メンバーを追加
   addMember: async (workspaceId: string, data: AddMemberRequest): Promise<void> => {
     await api.post(`/api/workspaces/${workspaceId}/add_member`, data);

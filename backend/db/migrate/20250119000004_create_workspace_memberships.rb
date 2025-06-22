@@ -1,7 +1,7 @@
 class CreateWorkspaceMemberships < ActiveRecord::Migration[7.2]
   def change
     create_table :workspace_memberships do |t|
-      t.references :user, null: false, foreign_key: true
+      t.references :user, null: false, foreign_key: true, type: :string
       t.references :workspace, null: false, foreign_key: { to_table: :workspaces }, type: :string
       t.string :role, default: 'member'
       t.string :status, default: 'active'

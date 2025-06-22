@@ -26,6 +26,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import { toast } from 'sonner';
 import api from '@/services/api';
+import MemberManagementTab from '@/components/admin/MemberManagementTab';
 
 interface DashboardData {
   workspace: {
@@ -354,20 +355,7 @@ const AdminDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="members" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>メンバー管理</CardTitle>
-                <CardDescription>企業メンバーの管理と権限設定</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">
-                    メンバー管理機能は別途実装予定です
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <MemberManagementTab workspaceId={currentWorkspace?.id} />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
